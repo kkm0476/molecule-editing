@@ -239,9 +239,9 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
 
     def on_test_epoch_end(self) -> None:
         """ Measure likelihood on a test set and compute stability metrics. """
-        target_smile = 'CCc1cncc(C)c1'
-        scaffold_smile = 'O=C'
-        threshold = 0.0 # 0.00 / 0.15 / 0.30 / 1.00
+        target_smile = self.cfg.general.target
+        scaffold_smile = self.cfg.general.scaffold
+        threshold = self.cfg.general.threshold
 
         targets = [
             'CCC1COCC1C',
