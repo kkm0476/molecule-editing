@@ -87,11 +87,11 @@ class SamplingMolecularMetrics(nn.Module):
         self.train_smiles = train_smiles
         self.dataset_info = di
 
-    def forward(self, molecules: list, name, current_epoch, val_counter, local_rank, test=False):
+    def forward(self, molecules: list, name, current_epoch, val_counter, local_rank, result_filename, test=False):
         stability, rdkit_metrics, all_smiles = compute_molecular_metrics(molecules, self.train_smiles, self.dataset_info)
 
         if test and local_rank == 0:
-            with open(r'final_smiles.txt', 'w') as fp:
+            with open(result_filename, 'w') as fp:
                 for smiles in all_smiles:
                     # write each item on a new line
                     fp.write("%s\n" % smiles)

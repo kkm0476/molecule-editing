@@ -239,6 +239,26 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
 
     def on_test_epoch_end(self) -> None:
         """ Measure likelihood on a test set and compute stability metrics. """
+        target_smile = 'CCc1cncc(C)c1'
+        scaffold_smile = 'O=C'
+        threshold = 0.0 # 0.00 / 0.15 / 0.30 / 1.00
+
+        targets = [
+            'CCC1COCC1C',
+            'CCc1cncc(C)c1',
+            'C#CCC1CC=CCO1',
+            'c1cnn2cccc2c1',
+            'c1ccoccoc1',
+            'C#CC(C=O)CC#N',
+            'C#CC(C#N)NCC#N',
+            'N=CNC=CN=NC=O',
+            'CCCC=CC(C)C',
+            'CCCNC(=O)CCC'
+            ]
+        scaffolds = ['c1ccncc1', 'O=C', 'N=O']
+        
+        result_filename = str(targets.index(target_smile) + 1) + '_' + str(scaffolds.index(scaffold_smile) + 1) + '_' + str(int(threshold * 100))
+        
         metrics = [self.test_nll.compute(), self.test_X_kl.compute(), self.test_E_kl.compute(),
                    self.test_X_logp.compute(), self.test_E_logp.compute()]
         if wandb.run:
@@ -257,7 +277,7 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
 
         self.print(f'Test loss: {test_nll :.4f}')
 
-        samples_left_to_generate = 2000
+        samples_left_to_generate = 3000
         samples_left_to_save = self.cfg.general.final_model_samples_to_save
         chains_left_to_save = self.cfg.general.final_model_chains_to_save
 
@@ -265,13 +285,14 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
         id = 0
         while samples_left_to_generate > 0:
             self.print(f'Samples left to generate: {samples_left_to_generate}/'
-                       f'{2000}', end='', flush=True)
+                       f'{3000}', end='', flush=True)
             bs = 500
             to_generate = min(samples_left_to_generate, bs)
             to_save = min(samples_left_to_save, bs)
             chains_save = min(chains_left_to_save, bs)
             samples.extend(self.sample_batch(id, to_generate, num_nodes=None, save_final=to_save,
-                                             keep_chain=chains_save, number_chain_steps=self.number_chain_steps))
+                                             keep_chain=chains_save, number_chain_steps=self.number_chain_steps, 
+                                             threshold=threshold, target_smile=target_smile, scaffold_smile=scaffold_smile))
             id += to_generate
             samples_left_to_save -= to_save
             samples_left_to_generate -= to_generate
@@ -298,7 +319,7 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
                     f.write("\n")
                 f.write("\n")
         self.print("Generated graphs Saved. Computing sampling metrics...")
-        self.sampling_metrics(samples, self.name, self.current_epoch, self.val_counter, test=True, local_rank=self.local_rank)
+        self.sampling_metrics(samples, self.name, self.current_epoch, self.val_counter, test=True, local_rank=self.local_rank, result_filename=result_filename)
         self.print("Done testing.")
 
 
@@ -492,7 +513,7 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
 
     @torch.no_grad()
     def sample_batch(self, batch_id: int, batch_size: int, keep_chain: int, number_chain_steps: int,
-                     save_final: int, num_nodes=None):
+                     save_final: int, threshold: int, target_smile: str, scaffold_smile: str, num_nodes=None):
         """
         :param batch_id: int
         :param batch_size: int
@@ -502,9 +523,6 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
         :param keep_chain_steps: number of timesteps to save for each chain
         :return: molecule_list. Each element of this list is a tuple (atom_types, charges, positions)
         """
-        target_smile = 'CCc1cncc(C)c1'
-        scaffold_smile = 'O=C'
-
         graph_target = self.graph_from_scaffold(target_smile)
         graph_scaffold = self.graph_from_scaffold(scaffold_smile)
 
@@ -550,9 +568,9 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
             t_array = s_array + 1
             s_norm = s_array / self.T
             t_norm = t_array / self.T
-
+            
             # Sample z_s
-            sampled_s, discrete_sampled_s = self.sample_p_zs_given_zt(s_norm, t_norm, X, E, y, node_mask, X_target, E_target, X_scaffold, E_scaffold)
+            sampled_s, discrete_sampled_s = self.sample_p_zs_given_zt(s_norm, t_norm, X, E, y, node_mask, X_target, E_target, X_scaffold, E_scaffold, threshold=threshold)
             X, E, y = sampled_s.X, sampled_s.E, sampled_s.y
 
             # Save the first keep_chain graphs
@@ -615,7 +633,7 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
 
         return molecule_list
 
-    def sample_p_zs_given_zt(self, s, t, X_t, E_t, y_t, node_mask, X_target, E_target, X_scaffold, E_scaffold):
+    def sample_p_zs_given_zt(self, s, t, X_t, E_t, y_t, node_mask, X_target, E_target, X_scaffold, E_scaffold, threshold):
         """Samples from zs ~ p(zs | zt). Only used during sampling.
            if last_step, return the graph prediction as well"""
         bs, n, dxs = X_t.shape
@@ -663,8 +681,6 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
         assert ((prob_E.sum(dim=-1) - 1).abs() < 1e-4).all()
 
         sampled_s = diffusion_utils.sample_discrete_features(prob_X, prob_E, node_mask=node_mask)
-        
-        threshold = 0.0 # 1.0, 0.75, 0.5, 0.25, 0.0
 
         if t[0] >= threshold:
             n_nodes_target = X_target.shape[1]
