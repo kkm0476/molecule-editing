@@ -25,7 +25,7 @@ columns = ['fcd_0', 'fcd_15', 'fcd_30', 'fcd_100', 'div_0', 'div_15', 'div_30', 
 
 for target_idx, target in enumerate(targets):
     for scaff_idx, scaffold in enumerate(scaffolds):
-        fcd_list = []
+        fid_list = []
         div_list = []
         for t in [0, 15, 30, 100]:
             smiles_list = []
@@ -39,10 +39,11 @@ for target_idx, target in enumerate(targets):
                     smiles_list.append(smiles)
             f.close()
 
-            # evaluate fcd score
+            # evaluate target fidelity
             fcd_score = fcd([target, target], smiles_list)
+            fcd_t = (100. - fcd_score) / 100.
 
-            # evaluate intdiv
+            # evaluate IntDiv
             molecules = [Chem.MolFromSmiles(smile) for smile in smiles_list]
             fingerprints = [AllChem.GetMorganFingerprintAsBitVect(mol, 2, nBits=1024) for mol in molecules]
             num_molecules = len(fingerprints)
@@ -57,10 +58,10 @@ for target_idx, target in enumerate(targets):
             if file_name == '1_1_0':
                 print('Samples      fcd     div')
             
-            print(f'{file_name[:-4]:<8}  {fcd_score:05.3f}  {intdiv:05.4f}')
-            fcd_list.append(fcd_score)
+            print(f'{file_name[:-4]:<8}  {fcd_t:05.3f}  {intdiv:05.4f}')
+            fid_list.append(fcd_t)
             div_list.append(intdiv)
-        data.append(fcd_list + div_list)
+        data.append(fid_list + div_list)
         index.append(f'{target_idx+1}_{scaff_idx+1}')
         print()
 
