@@ -1,12 +1,11 @@
-import os
-from fcd_score import FCD
+from fcd_torch import FCD
 from rdkit import Chem
 from rdkit.Chem import AllChem, DataStructs
 import numpy as np
+import pandas as pd
 
-result_path = '/content/molecule-editing/results/'
-targets = [
-    'CCC1COCC1C',
+result_path = '/content/molecule-editing/generated_smiles/'
+targets = ['CCC1COCC1C',
     'CCc1cncc(C)c1',
     'C#CCC1CC=CCO1',
     'c1cnn2cccc2c1',
@@ -15,44 +14,56 @@ targets = [
     'C#CC(C#N)NCC#N',
     'N=CNC=CN=NC=O',
     'CCCC=CC(C)C',
-    'CCCNC(=O)CCC'
-    ]
+    'CCCNC(=O)CCC']
 scaffolds = ['c1ccncc1', 'O=C', 'N=O']
-target_decoder = {(i+1):target for i, target in enumerate(targets)}
-scaff_decoder = {(i+1):scaff for i, scaff in enumerate(scaffolds)}
 
 fcd = FCD(device='cuda:0', n_jobs=8)
-file_list = os.listdir(result_path)
 
-for file in file_list:
-    if file.endswith('.txt'):
-        target_idx, scaff_idx, threshold = map(int, file.split('_'))
-        target = target_decoder[target_idx] # target SMILES
-        scaffold = scaff_decoder[scaff_idx] # scaffold SMILES
-        smiles_list = []
-        
-        f = open(result_path + file, 'r')
-        while True:
-            smiles = f.readline()
-            if not smiles:
-                break
-            if smiles != 'None':
-                smiles_list.append(smiles)
-        f.close()
-        
-        fcd_score = fcd([target, target], smiles_list)
+data = []
+index = []
+columns = ['fcd_0', 'fcd_15', 'fcd_30', 'fcd_100', 'div_0', 'div_15', 'div_30', 'div_100']
 
-        molecules = [Chem.MolFromSmiles(smile) for smile in smiles_list]
-        fingerprints = [AllChem.GetMorganFingerprintAsBitVect(mol, 2, nBits=1024) for mol in molecules]
-        num_molecules = len(fingerprints)
-        similarity_matrix = np.zeros((num_molecules, num_molecules))
-        for i in range(num_molecules):
-            for j in range(num_molecules):
-                similarity = DataStructs.TanimotoSimilarity(fingerprints[i], fingerprints[j])
-                similarity_matrix[i, j] = similarity
-        p = 1
-        intdiv = 1 - np.power(np.sum(np.power(similarity_matrix, p)) / (num_molecules ** 2), 1/p)
+for target_idx, target in enumerate(targets):
+    for scaff_idx, scaffold in enumerate(scaffolds):
+        fcd_list = []
+        div_list = []
+        for t in [0, 15, 30, 100]:
+            smiles_list = []
+            file_name = f'{target_idx+1}_{scaff_idx+1}_{t}.txt'
+            f = open(result_path + file_name, 'r')
+            while True:
+                smiles = f.readline().strip()
+                if not smiles:
+                    break
+                if smiles != 'None':
+                    smiles_list.append(smiles)
+            f.close()
 
-        print(f'{target} + {scaffold} with threshold {float(threshold)/100.}')
-        print(f'FCD : {fcd_score}')
-        print(f'IntDiv : {intdiv}\n')
+            # evaluate fcd score
+            fcd_score = fcd([target, target], smiles_list)
+
+            # evaluate intdiv
+            molecules = [Chem.MolFromSmiles(smile) for smile in smiles_list]
+            fingerprints = [AllChem.GetMorganFingerprintAsBitVect(mol, 2, nBits=1024) for mol in molecules]
+            num_molecules = len(fingerprints)
+            similarity_matrix = np.zeros((num_molecules, num_molecules))
+            for i in range(num_molecules):
+                for j in range(num_molecules):
+                    similarity = DataStructs.TanimotoSimilarity(fingerprints[i], fingerprints[j])
+                    similarity_matrix[i, j] = similarity
+            p = 1
+            intdiv = 1 - np.power(np.sum(np.power(similarity_matrix, p)) / (num_molecules ** 2), 1/p)\
+            
+            if file_name == '1_1_0':
+                print('Samples      fcd     div')
+            
+            print(f'{file_name[:-4]:<8}  {fcd_score:05.3f}  {intdiv:05.4f}')
+            fcd_list.append(fcd_score)
+            div_list.append(intdiv)
+        data.append(fcd_list + div_list)
+        index.append(f'{target_idx+1}_{scaff_idx+1}')
+        print()
+
+df = pd.DataFrame(data, columns=columns, index=index)
+print(df)
+df.to_csv('/content/molecule-editing/metrics.csv')
