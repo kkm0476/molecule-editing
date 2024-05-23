@@ -10,6 +10,7 @@ test_only: '/content/molecule-editing/checkpoints/checkpoint_qm9_noH.ckpt' # Use
 target: 'CCc1cncc(C)c1' # Target molecule SMILES
 scaffold: 'O=C' # Scaffold(functional group) SMILES
 threshold: 0.0 # 0.0: fully masking ~ 1.0: initialization only, we use 0.00 / 0.15 / 0.30 / 1.00
+edited_samples: 3000 # Number of samples to generate
 
 
 # does not modify below

@@ -277,7 +277,7 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
 
         self.print(f'Test loss: {test_nll :.4f}')
 
-        samples_left_to_generate = 3000
+        samples_left_to_generate = self.cfg.edited_samples
         samples_left_to_save = self.cfg.general.final_model_samples_to_save
         chains_left_to_save = self.cfg.general.final_model_chains_to_save
 
@@ -285,7 +285,7 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
         id = 0
         while samples_left_to_generate > 0:
             self.print(f'Samples left to generate: {samples_left_to_generate}/'
-                       f'{3000}', end='', flush=True)
+                       f'{self.cfg.edited_samples}', end='', flush=True)
             bs = 500
             to_generate = min(samples_left_to_generate, bs)
             to_save = min(samples_left_to_save, bs)
