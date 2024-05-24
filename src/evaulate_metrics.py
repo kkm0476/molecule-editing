@@ -21,7 +21,7 @@ fcd = FCD(device='cuda:0', n_jobs=8)
 
 data = []
 index = []
-columns = ['fcd_0', 'fcd_15', 'fcd_30', 'fcd_100', 'div_0', 'div_15', 'div_30', 'div_100']
+columns = ['fid_0', 'fid_15', 'fid_30', 'fid_100', 'div_0', 'div_15', 'div_30', 'div_100']
 
 for target_idx, target in enumerate(targets):
     for scaff_idx, scaffold in enumerate(scaffolds):
@@ -53,18 +53,19 @@ for target_idx, target in enumerate(targets):
                     similarity = DataStructs.TanimotoSimilarity(fingerprints[i], fingerprints[j])
                     similarity_matrix[i, j] = similarity
             p = 1
-            intdiv = 1 - np.power(np.sum(np.power(similarity_matrix, p)) / (num_molecules ** 2), 1/p)\
-            
-            if file_name == '1_1_0':
-                print('Samples      fcd     div')
-            
-            print(f'{file_name[:-4]:<8}  {fcd_t:05.3f}  {intdiv:05.4f}')
+            intdiv = 1 - np.power(np.sum(np.power(similarity_matrix, p)) / (num_molecules ** 2), 1/p)
             fid_list.append(fcd_t)
             div_list.append(intdiv)
         data.append(fid_list + div_list)
         index.append(f'{target_idx+1}_{scaff_idx+1}')
+        
+        if target_idx + scaff_idx == 0:
+            print('file    fid_0   fid_15   fid_30  fid_100    div_0   div_15   div_30  div_100')
+        
+        print(f'{(target_idx+1):02d}_{scaff_idx+1}', end='')
+        for score in (fid_list + div_list):
+            print(f'    {score:>4.3f}', end='')
         print()
 
 df = pd.DataFrame(data, columns=columns, index=index)
-print(df)
 df.to_csv('/content/molecule-editing/metrics.csv')
