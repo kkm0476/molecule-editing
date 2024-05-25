@@ -2,8 +2,7 @@
 general:
     name : 'qm9_no_h'
     gpus : 1
-    wandb: 'online'
-    test_only: /home/kkm0476/CS471/DiGress/checkpoints/qm9-checkpoint-last-v1.ckpt # qm9
+    test_only: '/content/molecule-editing/checkpoints/checkpoint_qm9_noH.ckpt' # Use absoulte path
     evaluate_all_checkpoints: False
 train:
     n_epochs: 1000

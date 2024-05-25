@@ -6,7 +6,6 @@ from src.analysis.rdkit_functions import compute_molecular_metrics
 import torch
 from torchmetrics import Metric, MetricCollection
 from torch import Tensor
-import wandb
 import torch.nn as nn
 
 
@@ -25,8 +24,7 @@ class TrainMolecularMetrics(nn.Module):
                 to_log['train/' + key] = val.item()
             for key, val in self.train_bond_metrics.compute().items():
                 to_log['train/' + key] = val.item()
-            if wandb.run:
-                wandb.log(to_log, commit=False)
+
 
     def reset(self):
         for metric in [self.train_atom_metrics, self.train_bond_metrics]:
@@ -42,8 +40,6 @@ class TrainMolecularMetrics(nn.Module):
         for key, val in epoch_bond_metrics.items():
             to_log['train_epoch/epoch' + key] = val.item()
 
-        if wandb.run:
-            wandb.log(to_log, commit=False)
 
         for key, val in epoch_atom_metrics.items():
             epoch_atom_metrics[key] = f"{val.item() :.3f}"
