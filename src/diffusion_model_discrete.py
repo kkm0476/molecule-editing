@@ -248,7 +248,7 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
             ]
         scaffolds = ['c1ccncc1', 'O=C', 'N=O']
         
-        result_filename = '/generated_smiles/'
+        result_filename = '/content/molecule-editing/generated_smiles/'
         if (target_smile in targets) and (scaffold_smile in scaffolds) and (threshold in [0.00, 0.15, 0.30, 1.00]):
             result_filename += str(targets.index(target_smile) + 1) + '_' + str(scaffolds.index(scaffold_smile) + 1) + '_' + str(int(threshold * 100)) + '.txt'
         else:
