@@ -1,36 +1,52 @@
-import argparse
 from fcd_torch import FCD
 from rdkit import Chem
 from rdkit.Chem import AllChem, DataStructs
 import numpy as np
 import pandas as pd
+import argparse
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Process arguments for the script.")
-    parser.add_argument("--target", type=str, help="SMILES string for the target molecule")
-    parser.add_argument("--scaffold", type=str, help="SMILES string for the scaffold molecule")
-    parser.add_argument("--threshold", type=float, help="Threshold value")
+    parser.add_argument("--target", type=int, help="SMILES string for the target molecule")
+    parser.add_argument("--scaffold", type=int, help="SMILES string for the scaffold molecule")
+    parser.add_argument("--threshold", type=int, help="Threshold value")
     parser.add_argument("--result_path", type=str, help="Absolute path for the exported smiles file")
     return parser.parse_args()
 
 # Parse command-line arguments
 args = parse_arguments()
 
+targets = ['CCC1COCC1C', # exported as "1_%d_%d.txt"
+          'CCc1cncc(C)c1',
+          'C#CCC1CC=CCO1',
+          'c1cnn2cccc2c1',
+          'c1ccoccoc1',
+          'C#CC(C=O)CC#N',
+          'C#CC(C#N)NCC#N',
+          'N=CNC=CN=NC=O',
+          'CCCC=CC(C)C',
+          'CCCNC(=O)CCC'
+          ]
+scaffolds = ['c1ccncc1',
+             'O=C', # exported as "%d_2_%d.txt"
+             'N=O']
+thresholds = [0,
+              0.15,
+              0.30, # exported as %d_%d_30.txt"
+              1.00]
+
 # Assign values from command-line arguments to variables
-target = args.target
-scaffold = args.scaffold
-threshold = args.threshold
+target = targets[args.target]
+scaffold = scaffolds[args.scaffold]
+threshold = thresholds[args.threshold]
 result_path = args.result_path
 
 print("Evaluation for ")
-print("Target :", target)
-print("Scaffold :", scaffold)
-print("Threshold :", threshold)
-print("Generated_smiles :", result_path)
+print("Target :", target, "Scaffold :", scaffold, "Threshold :", threshold, "Generated_smiles :", result_path)
 
 # target = 'CCc1cncc(C)c1' # your target SMILES
 # scaffold = 'O=C' # your scaffold SMILES
-# threshold = 0.0 # your threshold
+# threshold = 0.0 # your thresholdß
 # result_path = '/content/molecule-editing/generated_smiles.txt' # absolute path for your samples
 
 fcd = FCD(device='cuda:0', n_jobs=8)
