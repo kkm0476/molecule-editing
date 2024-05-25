@@ -1,5 +1,6 @@
 from rdkit import Chem
 from torchmetrics import MeanSquaredError, MeanAbsoluteError
+import os
 
 ### packages for visualization
 from src.analysis.rdkit_functions import compute_molecular_metrics
@@ -87,6 +88,7 @@ class SamplingMolecularMetrics(nn.Module):
         stability, rdkit_metrics, all_smiles = compute_molecular_metrics(molecules, self.train_smiles, self.dataset_info)
 
         if test and local_rank == 0:
+            os.makedirs('/content/molecule-editing/generated_smiles/', exist_ok=True)
             with open(result_filename, 'w') as fp:
                 for smiles in all_smiles:
                     # write each item on a new line
