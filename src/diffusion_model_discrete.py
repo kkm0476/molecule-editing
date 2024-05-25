@@ -248,11 +248,11 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
             ]
         scaffolds = ['c1ccncc1', 'O=C', 'N=O']
         
-        result_filename = ''
+        result_filename = '/generated_smiles/'
         if (target_smile in targets) and (scaffold_smile in scaffolds) and (threshold in [0.00, 0.15, 0.30, 1.00]):
-            result_filename = str(targets.index(target_smile) + 1) + '_' + str(scaffolds.index(scaffold_smile) + 1) + '_' + str(int(threshold * 100)) + '.txt'
+            result_filename += str(targets.index(target_smile) + 1) + '_' + str(scaffolds.index(scaffold_smile) + 1) + '_' + str(int(threshold * 100)) + '.txt'
         else:
-            result_filename = 'generated_smiles.txt'
+            result_filename += 'generated_smiles.txt'
         
         metrics = [self.test_nll.compute(), self.test_X_kl.compute(), self.test_E_kl.compute(),
                    self.test_X_logp.compute(), self.test_E_logp.compute()]
