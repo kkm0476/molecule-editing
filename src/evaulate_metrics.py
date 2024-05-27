@@ -4,7 +4,7 @@ from rdkit.Chem import AllChem, DataStructs
 import numpy as np
 import pandas as pd
 
-result_path = '/content/molecule-editing/generated_smiles/'
+result_path = '/content/molecule-editing/generated_smiles_sample/'
 targets = ['CCC1COCC1C',
     'CCc1cncc(C)c1',
     'C#CCC1CC=CCO1',
